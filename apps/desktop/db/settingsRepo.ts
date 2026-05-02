@@ -1,11 +1,10 @@
 import type Database from 'better-sqlite3';
 import type { AppSettings } from '../types';
-import { strictJsonParse, SettingsSchema } from './validation-schemas';
+import { SettingsSchema } from './validation-schemas';
 import { logger } from '../utils/logger';
 
 const normalizeSettings = (settings: unknown): AppSettings => {
   const next = settings as Partial<AppSettings>;
-  // Backward compatibility for older saved settings that predate the portal section.
   if (!next.portal) {
     next.portal = { baseUrl: '' };
   } else if (typeof next.portal.baseUrl !== 'string') {
@@ -19,20 +18,11 @@ const normalizeSettings = (settings: unknown): AppSettings => {
       version: '2.3',
     };
   } else {
-    if (typeof next.eInvoice.enabled !== 'boolean') {
-      next.eInvoice.enabled = false;
-    }
-    if (next.eInvoice.standard !== 'zugferd-en16931') {
-      next.eInvoice.standard = 'zugferd-en16931';
-    }
-    if (next.eInvoice.profile !== 'EN16931') {
-      next.eInvoice.profile = 'EN16931';
-    }
-    if (next.eInvoice.version !== '2.3') {
-      next.eInvoice.version = '2.3';
-    }
+    if (typeof next.eInvoice.enabled !== 'boolean') next.eInvoice.enabled = false;
+    if (next.eInvoice.standard !== 'zugferd-en16931') next.eInvoice.standard = 'zugferd-en16931';
+    if (next.eInvoice.profile !== 'EN16931') next.eInvoice.profile = 'EN16931';
+    if (next.eInvoice.version !== '2.3') next.eInvoice.version = '2.3';
   }
-  // Backward compatibility for email section.
   if (!next.email) {
     next.email = {
       provider: 'none',
@@ -44,7 +34,6 @@ const normalizeSettings = (settings: unknown): AppSettings => {
       fromEmail: '',
     };
   }
-  // Backward compatibility for numbering section.
   if (!next.numbers) {
     next.numbers = {
       invoicePrefix: 'RE-%Y-',
@@ -57,17 +46,10 @@ const normalizeSettings = (settings: unknown): AppSettings => {
       customerNumberLength: 4,
     };
   } else {
-    if (typeof next.numbers.customerPrefix !== 'string') {
-      next.numbers.customerPrefix = 'KD-';
-    }
-    if (typeof next.numbers.nextCustomerNumber !== 'number' || !Number.isFinite(next.numbers.nextCustomerNumber)) {
-      next.numbers.nextCustomerNumber = 1;
-    }
-    if (typeof next.numbers.customerNumberLength !== 'number' || !Number.isFinite(next.numbers.customerNumberLength)) {
-      next.numbers.customerNumberLength = 4;
-    }
+    if (typeof next.numbers.customerPrefix !== 'string') next.numbers.customerPrefix = 'KD-';
+    if (typeof next.numbers.nextCustomerNumber !== 'number' || !Number.isFinite(next.numbers.nextCustomerNumber)) next.numbers.nextCustomerNumber = 1;
+    if (typeof next.numbers.customerNumberLength !== 'number' || !Number.isFinite(next.numbers.customerNumberLength)) next.numbers.customerNumberLength = 4;
   }
-  // Backward compatibility for automation section.
   if (!next.automation) {
     next.automation = {
       dunningEnabled: false,
@@ -76,14 +58,9 @@ const normalizeSettings = (settings: unknown): AppSettings => {
       recurringRunTime: '03:00',
     };
   } else {
-    if (typeof next.automation.recurringEnabled !== 'boolean') {
-      next.automation.recurringEnabled = false;
-    }
-    if (typeof next.automation.recurringRunTime !== 'string') {
-      next.automation.recurringRunTime = '03:00';
-    }
+    if (typeof next.automation.recurringEnabled !== 'boolean') next.automation.recurringEnabled = false;
+    if (typeof next.automation.recurringRunTime !== 'string') next.automation.recurringRunTime = '03:00';
   }
-  // Backward compatibility for output section.
   if (!next.output) {
     next.output = { pdfOutputPath: '' };
   } else if (typeof next.output.pdfOutputPath !== 'string') {
@@ -94,11 +71,13 @@ const normalizeSettings = (settings: unknown): AppSettings => {
 
 export const getSettings = (db: Database.Database): AppSettings | null => {
   const row = db.prepare('SELECT settings_json FROM settings WHERE id = 1').get() as
-    | { settings_json: string }
+    | { settings_json: string | object }
     | undefined;
   if (!row) return null;
   try {
-    const parsed = strictJsonParse(row.settings_json);
+    // better-sqlite3 may return already-parsed object if column was stored without JSON.stringify
+    const raw = row.settings_json;
+    const parsed: unknown = typeof raw === 'string' ? JSON.parse(raw) : raw;
     return normalizeSettings(parsed);
   } catch (e) {
     logger.error('Failed to parse settings', { error: String(e) });

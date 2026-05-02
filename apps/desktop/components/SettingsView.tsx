@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Building2, Landmark, FileDigit, Scale,
   Save, CheckCircle, HelpCircle, AlertCircle, Tags, Plus, Trash2,
-  Download, Upload
+  Download, Upload, FolderOpen
 } from 'lucide-react';
 import { Button } from '@billme/ui';
 import { AppSettings } from '../types';
@@ -147,7 +147,6 @@ export const SettingsView: React.FC = () => {
       }
     };
     reader.readAsText(file);
-    // reset so same file can be re-selected
     e.target.value = '';
   };
 
@@ -730,7 +729,38 @@ export const SettingsView: React.FC = () => {
           <div className="max-w-2xl space-y-10 animate-enter">
             <div>
               <h3 className="text-xl font-bold mb-1">System</h3>
-              <p className="text-gray-500 text-sm">Audit-Log, Backup und Einstellungs-Export/Import.</p>
+              <p className="text-gray-500 text-sm">PDF-Ausgabe, Audit-Log, Backup und Einstellungs-Export/Import.</p>
+            </div>
+
+            {/* PDF Output Path */}
+            <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 space-y-4">
+              <div className="flex items-center gap-3 mb-1">
+                <FolderOpen size={20} className="text-gray-700" />
+                <h4 className="text-lg font-bold text-gray-900">PDF Speicherordner</h4>
+              </div>
+              <p className="text-sm text-gray-500">
+                Ordner, in dem exportierte PDFs automatisch gespeichert werden. Leer lassen f\u00fcr den Standard-Exportordner der App.
+              </p>
+              <input
+                type="text"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-accent outline-none transition-shadow"
+                placeholder="z.B. C:\\Users\\Enes\\Dokumente\\Rechnungen"
+                value={settings.output?.pdfOutputPath ?? ''}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    output: { ...(prev.output ?? {}), pdfOutputPath: e.target.value },
+                  }))
+                }
+              />
+              {settings.output?.pdfOutputPath ? (
+                <p className="text-xs text-green-700 font-medium flex items-center gap-1">
+                  <CheckCircle size={13} />
+                  PDFs werden gespeichert in: <span className="font-mono ml-1">{settings.output.pdfOutputPath}</span>
+                </p>
+              ) : (
+                <p className="text-xs text-gray-400">Standard: App-Exportordner (userData/exports)</p>
+              )}
             </div>
 
             {/* Audit */}
