@@ -1,0 +1,67 @@
+--- a/apps/desktop/electron/ipcHandlers.ts
++++ b/apps/desktop/electron/ipcHandlers.ts
+@@ -382,6 +382,8 @@
+   register(ipcMain, 'pdf:export', async ({ kind, id }) => {
+     const db = requireDb();
+     const userDataPath = getUserDataPath();
++    const pdfSettings = getSettings(db);
++    const pdfOutputPath = pdfSettings?.output?.pdfOutputPath || '';
+ 
+     if (kind === 'offer') {
+       const offer = getOffer(db, id);
+@@ -391,6 +393,7 @@
+         id,
+         suggestedName: `${offer.number || 'offer'}-${offer.client || id}`,
+         userDataPath,
++        pdfOutputPath,
+       });
+       return { path: res.path };
+     }
+@@ -402,6 +405,7 @@
+       id,
+       suggestedName: `${invoice.number || 'invoice'}-${invoice.client || id}`,
+       userDataPath,
++      pdfOutputPath,
+     });
+     const settings = requireSettings(db);
+     if (settings.eInvoice?.enabled) {
+--- a/apps/desktop/components/SettingsView.tsx
++++ b/apps/desktop/components/SettingsView.tsx
+@@ -733,6 +733,37 @@
+               <p className="text-gray-500 text-sm">Audit-Log, Backup und Einstellungs-Export/Import.</p>
+             </div>
+ 
++            {/* PDF Output Path */}
++            <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
++              <div className="mb-4">
++                <h4 className="text-lg font-bold text-gray-900">PDF Speicherordner</h4>
++                <p className="text-sm text-gray-500 mt-1">
++                  Ordner in dem PDFs automatisch gespeichert werden. Leer lassen für den Standard-Exportordner der App.
++                </p>
++              </div>
++              <div className="flex gap-2 items-center">
++                <input
++                  type="text"
++                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-accent/30"
++                  placeholder="z.B. C:\\Users\\Enes\\Dokumente\\Rechnungen"
++                  value={draft.output?.pdfOutputPath ?? ''}
++                  onChange={(e) =>
++                    setDraft((d: any) => ({
++                      ...d,
++                      output: { ...(d.output ?? {}), pdfOutputPath: e.target.value },
++                    }))
++                  }
++                />
++              </div>
++              {draft.output?.pdfOutputPath ? (
++                <p className="text-xs text-green-600 font-medium mt-2">
++                  ✓ PDFs werden gespeichert in: <span className="font-mono">{draft.output.pdfOutputPath}</span>
++                </p>
++              ) : (
++                <p className="text-xs text-gray-400 mt-2">Standard: App-Exportordner (userData/exports)</p>
++              )}
++            </div>
++
+             {/* Audit */}
+             <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+               <div>
