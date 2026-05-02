@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { Briefcase, Bell, FileText, Package, Search, Settings, Users } from 'lucide-react';
+import { Bell, FileText, Package, Search, Settings, Users } from 'lucide-react';
 import { ipc } from '../ipc/client';
 import { Titlebar } from './Titlebar';
 import billmeFullLogo from '../assets/billme-full-logo.svg';
@@ -10,7 +10,7 @@ type HeaderSearchResult = {
   key: string;
   title: string;
   subtitle: string;
-  badge: 'Rechnung' | 'Angebot' | 'Kunde' | 'Projekt' | 'Artikel';
+  badge: 'Rechnung' | 'Angebot' | 'Kunde' | 'Artikel';
   to: string;
   score: number;
 };
@@ -54,11 +54,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, acti
     enabled: !isEditorActive && normalizedSearch.length >= 2,
     staleTime: 15_000,
     queryFn: async () => {
-      const [invoices, offers, clients, projects, articles] = await Promise.all([
+      const [invoices, offers, clients, articles] = await Promise.all([
         ipc.invoices.list(),
         ipc.offers.list(),
         ipc.clients.list(),
-        ipc.projects.list({ includeArchived: true }),
         ipc.articles.list(),
       ]);
 
@@ -103,19 +102,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, acti
         });
       }
 
-      for (const project of projects) {
-        const score = getScore(normalizedSearch, [project.code, project.name, project.description]);
-        if (score === null) continue;
-        results.push({
-          key: `project:${project.id}`,
-          title: project.name,
-          subtitle: project.code || 'Projekt',
-          badge: 'Projekt',
-          to: `/projects/${encodeURIComponent(project.id)}`,
-          score,
-        });
-      }
-
       for (const article of articles) {
         const score = getScore(normalizedSearch, [article.title, article.sku, article.category, article.description]);
         if (score === null) continue;
@@ -150,13 +136,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, acti
     navigate({ to: result.to });
   };
 
-  // Simplified menu items for top nav (text only typically looks cleaner in top bars)
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'clients', label: 'Kunden' },
-    { id: 'projects', label: 'Projekte' },
     { id: 'documents', label: 'Dokumente' },
-    { id: 'finance', label: 'Finanzen' },
     { id: 'articles', label: 'Artikel' },
   ];
 
@@ -251,11 +234,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, acti
                               const Icon =
                                 result.badge === 'Kunde'
                                   ? Users
-                                  : result.badge === 'Projekt'
-                                    ? Briefcase
-                                    : result.badge === 'Artikel'
-                                      ? Package
-                                      : FileText;
+                                  : result.badge === 'Artikel'
+                                    ? Package
+                                    : FileText;
 
                               return (
                                 <button
