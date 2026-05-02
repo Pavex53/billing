@@ -93,12 +93,12 @@ const normalizeSettings = (settings: unknown): AppSettings => {
 };
 
 export const getSettings = (db: Database.Database): AppSettings | null => {
-  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('app') as
-    | { value: string }
+  const row = db.prepare('SELECT settings_json FROM settings WHERE id = 1').get() as
+    | { settings_json: string }
     | undefined;
   if (!row) return null;
   try {
-    const parsed = strictJsonParse(row.value);
+    const parsed = strictJsonParse(row.settings_json);
     return normalizeSettings(parsed);
   } catch (e) {
     logger.error('Failed to parse settings', { error: String(e) });
@@ -111,8 +111,7 @@ export const setSettings = (db: Database.Database, settings: AppSettings): void 
   if (!validation.success) {
     logger.warn('Settings validation warning', { issues: validation.error.issues });
   }
-  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(
-    'app',
+  db.prepare('UPDATE settings SET settings_json = ? WHERE id = 1').run(
     JSON.stringify(settings),
   );
 };
