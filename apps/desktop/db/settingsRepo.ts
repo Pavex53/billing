@@ -83,46 +83,36 @@ const normalizeSettings = (settings: unknown): AppSettings => {
       next.automation.recurringRunTime = '03:00';
     }
   }
-  // Backward compatibility for dashboard section.
-  if (!next.dashboard) {
-    next.dashboard = {
-      monthlyRevenueGoal: 30000,
-      dueSoonDays: 7,
-      topCategoriesLimit: 5,
-      recentPaymentsLimit: 5,
-      topClientsLimit: 5,
-    };
-  }
-  // Backward compatibility for dunning level enabled field.
-  if (next.dunning?.levels) {
-    next.dunning.levels = next.dunning.levels.map((level: any) => ({
-      ...level,
-      enabled: level.enabled !== undefined ? level.enabled : true,
-    }));
+  // Backward compatibility for output section.
+  if (!next.output) {
+    next.output = { pdfOutputPath: '' };
+  } else if (typeof next.output.pdfOutputPath !== 'string') {
+    next.output.pdfOutputPath = '';
   }
   return next as AppSettings;
 };
 
 export const getSettings = (db: Database.Database): AppSettings | null => {
-  const row = db.prepare('SELECT settings_json FROM settings WHERE id = 1').get() as
-    | { settings_json: string }
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('app') as
+    | { value: string }
     | undefined;
   if (!row) return null;
   try {
-    const parsed = strictJsonParse(row.settings_json, SettingsSchema, 'Application settings');
+    const parsed = strictJsonParse(row.value);
     return normalizeSettings(parsed);
-  } catch (error) {
-    logger.error('SettingsRepo', 'Failed to parse settings, returning null', error as Error);
+  } catch (e) {
+    logger.error('Failed to parse settings', { error: String(e) });
     return null;
   }
 };
 
 export const setSettings = (db: Database.Database, settings: AppSettings): void => {
-  db.prepare(
-    `
-      INSERT INTO settings (id, settings_json)
-      VALUES (1, @json)
-      ON CONFLICT(id) DO UPDATE SET settings_json = excluded.settings_json
-    `,
-  ).run({ json: JSON.stringify(settings) });
+  const validation = SettingsSchema.safeParse(settings);
+  if (!validation.success) {
+    logger.warn('Settings validation warning', { issues: validation.error.issues });
+  }
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(
+    'app',
+    JSON.stringify(settings),
+  );
 };
