@@ -33,8 +33,11 @@ export const exportPdf = async (params: {
   id: string;
   suggestedName: string;
   userDataPath: string;
+  pdfOutputPath?: string;
 }): Promise<{ path: string; bytes: Uint8Array }> => {
-  const exportsDir = path.join(params.userDataPath, 'exports');
+  const exportsDir = (params.pdfOutputPath && params.pdfOutputPath.trim())
+    ? params.pdfOutputPath.trim()
+    : path.join(params.userDataPath, 'exports');
   ensureDir(exportsDir);
 
   const fileName = `${sanitizeFilePart(params.suggestedName || `${params.kind}-${params.id}`)}.pdf`;
