@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Building2, Landmark, FileDigit, Scale,
-  Save, CheckCircle, HelpCircle, AlertCircle, Tags, Plus, Trash2
+  Save, CheckCircle, HelpCircle, AlertCircle, Tags, Plus, Trash2,
+  Download, Upload
 } from 'lucide-react';
 import { Button } from '@billme/ui';
 import { AppSettings } from '../types';
@@ -23,6 +24,8 @@ export const SettingsView: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(loadedSettings ?? MOCK_SETTINGS);
   const [showSaveToast, setShowSaveToast] = useState(false);
   const [backupPath, setBackupPath] = useState('');
+  const [importStatus, setImportStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (loadedSettings) setSettings(loadedSettings);
@@ -49,7 +52,7 @@ export const SettingsView: React.FC = () => {
     const prevById = new Map(prevCategories.map((c) => [c.id, c]));
     const nextById = new Map(nextCategories.map((c) => [c.id, c]));
 
-    const renameMap = new Map<string, string>(); // oldName -> newName
+    const renameMap = new Map<string, string>();
     const removedNames: string[] = [];
 
     for (const prev of prevCategories) {
@@ -105,6 +108,49 @@ export const SettingsView: React.FC = () => {
     setTimeout(() => setShowSaveToast(false), 3000);
   };
 
+  const handleExportSettings = () => {
+    const exportData = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      settings,
+    };
+    const json = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `billme-settings-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportSettings = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        const imported: AppSettings = parsed?.settings ?? parsed;
+        if (!imported?.company || !imported?.finance || !imported?.numbers) {
+          throw new Error('Ungültige Einstellungsdatei.');
+        }
+        setSettings(imported);
+        await setSettingsMutation.mutateAsync(imported);
+        setImportStatus({ success: true, message: 'Einstellungen erfolgreich importiert!' });
+        setTimeout(() => setImportStatus(null), 4000);
+      } catch (err) {
+        setImportStatus({ success: false, message: `Import fehlgeschlagen: ${String(err)}` });
+        setTimeout(() => setImportStatus(null), 5000);
+      }
+    };
+    reader.readAsText(file);
+    // reset so same file can be re-selected
+    e.target.value = '';
+  };
+
   const updateNested = (section: keyof AppSettings, field: string, value: any) => {
     setSettings(prev => ({
       ...prev,
@@ -154,7 +200,7 @@ export const SettingsView: React.FC = () => {
           <div className="max-w-2xl space-y-8 animate-enter">
             <div>
               <h3 className="text-xl font-bold mb-1">Unternehmensdaten</h3>
-              <p className="text-gray-500 text-sm">Diese Informationen erscheinen im Kopf- und Fußbereich der Rechnung.</p>
+              <p className="text-gray-500 text-sm">Diese Informationen erscheinen im Kopf- und Fu\u00dfbereich der Rechnung.</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6">
@@ -168,7 +214,7 @@ export const SettingsView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Inhaber / Geschäftsführer</label>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Inhaber / Gesch\u00e4ftsf\u00fchrer</label>
                 <input
                   type="text"
                   value={settings.company.owner}
@@ -178,7 +224,7 @@ export const SettingsView: React.FC = () => {
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Straße & Hausnr.</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Stra\u00dfe & Hausnr.</label>
                   <input
                     type="text"
                     value={settings.company.street}
@@ -244,8 +290,8 @@ export const SettingsView: React.FC = () => {
             <div>
               <h3 className="text-xl font-bold mb-1">Kategorien</h3>
               <p className="text-gray-500 text-sm">
-                Kategorien für „Produkte & Leistungen". Änderungen können beim Speichern automatisch in Artikeln
-                übernommen werden.
+                Kategorien f\u00fcr \u201eProdukte & Leistungen\". \u00c4nderungen k\u00f6nnen beim Speichern automatisch in Artikeln
+                \u00fcbernommen werden.
               </p>
             </div>
 
@@ -274,7 +320,7 @@ export const SettingsView: React.FC = () => {
 
               {(settings.catalog?.categories ?? []).length === 0 ? (
                 <div className="p-4 bg-white rounded-2xl border border-gray-100 text-sm text-gray-500">
-                  Noch keine Kategorien. Lege Kategorien an, damit du sie bei Artikeln auswählen kannst.
+                  Noch keine Kategorien. Lege Kategorien an, damit du sie bei Artikeln ausw\u00e4hlen kannst.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -324,7 +370,7 @@ export const SettingsView: React.FC = () => {
           <div className="max-w-2xl space-y-8 animate-enter">
             <div>
               <h3 className="text-xl font-bold mb-1">Bankverbindung & Steuer</h3>
-              <p className="text-gray-500 text-sm">Wichtig für den Zahlungsverkehr und die Pflichtangaben auf der Rechnung.</p>
+              <p className="text-gray-500 text-sm">Wichtig f\u00fcr den Zahlungsverkehr und die Pflichtangaben auf der Rechnung.</p>
             </div>
 
             <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
@@ -402,7 +448,7 @@ export const SettingsView: React.FC = () => {
           <div className="max-w-2xl space-y-8 animate-enter">
             <div>
               <h3 className="text-xl font-bold mb-1">Nummernkreise</h3>
-              <p className="text-gray-500 text-sm">Definieren Sie das Format für Ihre Rechnungs-, Angebots- und Kundennummern.</p>
+              <p className="text-gray-500 text-sm">Definieren Sie das Format f\u00fcr Ihre Rechnungs-, Angebots- und Kundennummern.</p>
             </div>
 
             <div className="bg-black/5 rounded-3xl p-6 border border-black/5">
@@ -419,7 +465,7 @@ export const SettingsView: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Präfix Format</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Pr\u00e4fix Format</label>
                     <div className="group relative">
                       <HelpCircle size={12} className="text-gray-400 cursor-help" />
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs p-2 rounded pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -435,7 +481,7 @@ export const SettingsView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Nächste Nummer</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">N\u00e4chste Nummer</label>
                   <input
                     type="number"
                     value={settings.numbers.nextInvoiceNumber}
@@ -450,7 +496,7 @@ export const SettingsView: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Mindestlänge (Padding)</label>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Mindestl\u00e4nge (Padding)</label>
                 <input
                   type="range"
                   min="1"
@@ -480,7 +526,7 @@ export const SettingsView: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Präfix Format</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Pr\u00e4fix Format</label>
                   <input
                     type="text"
                     value={settings.numbers.offerPrefix}
@@ -489,7 +535,7 @@ export const SettingsView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Nächste Nummer</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">N\u00e4chste Nummer</label>
                   <input
                     type="number"
                     value={settings.numbers.nextOfferNumber}
@@ -517,7 +563,7 @@ export const SettingsView: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Präfix Format</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Pr\u00e4fix Format</label>
                   <input
                     type="text"
                     value={settings.numbers.customerPrefix}
@@ -526,7 +572,7 @@ export const SettingsView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Nächste Nummer</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">N\u00e4chste Nummer</label>
                   <input
                     type="number"
                     value={settings.numbers.nextCustomerNumber}
@@ -541,7 +587,7 @@ export const SettingsView: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Mindestlänge (Padding)</label>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Mindestl\u00e4nge (Padding)</label>
                 <input
                   type="range"
                   min="1"
@@ -585,7 +631,7 @@ export const SettingsView: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm">Kleinunternehmerregelung anwenden</h4>
-                    <p className="text-xs text-gray-500 mt-1">Keine Umsatzsteuerberechnung gem. § 19 UStG.</p>
+                    <p className="text-xs text-gray-500 mt-1">Keine Umsatzsteuerberechnung gem. \u00a7 19 UStG.</p>
                   </div>
                 </div>
               </div>
@@ -603,7 +649,7 @@ export const SettingsView: React.FC = () => {
                     {settings.eInvoice.enabled && <CheckCircle size={14} className="text-accent" />}
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm">ZUGFeRD Export für Rechnungen aktivieren</h4>
+                    <h4 className="font-bold text-sm">ZUGFeRD Export f\u00fcr Rechnungen aktivieren</h4>
                     <p className="text-xs text-gray-500 mt-1">
                       Exportiert Rechnungen als ZUGFeRD EN16931 (Profil {settings.eInvoice.profile}, Version {settings.eInvoice.version}).
                     </p>
@@ -636,7 +682,7 @@ export const SettingsView: React.FC = () => {
             <div className="bg-white border border-gray-100 rounded-3xl p-6">
               <h4 className="font-bold text-sm mb-2">Umsatzsteuer-Basis (Dashboard)</h4>
               <p className="text-xs text-gray-500 mb-4">
-                Soll: basiert auf gestellten Rechnungen (Status ≠ Entwurf) nach Rechnungsdatum. Ist: basiert auf erfassten Zahlungen nach Zahlungsdatum.
+                Soll: basiert auf gestellten Rechnungen (Status \u2260 Entwurf) nach Rechnungsdatum. Ist: basiert auf erfassten Zahlungen nach Zahlungsdatum.
               </p>
               <div className="flex items-center gap-2 bg-gray-100/80 p-1.5 rounded-full border border-gray-200 w-fit">
                 {(['soll', 'ist'] as const).map((m) => (
@@ -668,7 +714,7 @@ export const SettingsView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Fußzeilentext (Zusatz)</label>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Fu\u00dfzeilentext (Zusatz)</label>
                 <textarea
                   value={settings.legal.defaultFooterText}
                   onChange={(e) => updateNested('legal', 'defaultFooterText', e.target.value)}
@@ -684,13 +730,14 @@ export const SettingsView: React.FC = () => {
           <div className="max-w-2xl space-y-10 animate-enter">
             <div>
               <h3 className="text-xl font-bold mb-1">System</h3>
-              <p className="text-gray-500 text-sm">Audit-Log, Backup und Wiederherstellung.</p>
+              <p className="text-gray-500 text-sm">Audit-Log, Backup und Einstellungs-Export/Import.</p>
             </div>
 
+            {/* Audit */}
             <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h4 className="text-lg font-bold text-gray-900">Audit</h4>
-                <p className="text-sm text-gray-500">Audit-Log prüfen und als CSV exportieren.</p>
+                <p className="text-sm text-gray-500">Audit-Log pr\u00fcfen und als CSV exportieren.</p>
               </div>
               <div className="flex gap-3">
                 <button
@@ -722,11 +769,12 @@ export const SettingsView: React.FC = () => {
               </div>
             </div>
 
+            {/* DB Backup */}
             <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 space-y-4">
               <div>
-                <h4 className="text-lg font-bold text-gray-900">Backup</h4>
+                <h4 className="text-lg font-bold text-gray-900">Datenbank-Backup</h4>
                 <p className="text-sm text-gray-500">
-                  Datenbank sichern oder aus einer Sicherung wiederherstellen.
+                  Komplette Datenbank sichern oder aus einer Sicherung wiederherstellen.
                 </p>
               </div>
 
@@ -756,7 +804,7 @@ export const SettingsView: React.FC = () => {
                   <button
                     onClick={async () => {
                       if (!backupPath.trim()) return;
-                      if (!confirm('Aktuelle Daten werden überschrieben. Fortfahren?')) return;
+                      if (!confirm('Aktuelle Daten werden \u00fcberschrieben. Fortfahren?')) return;
                       try {
                         await ipc.db.restore({ path: backupPath.trim() });
                         alert('Wiederhergestellt. App wird neu geladen...');
@@ -772,6 +820,53 @@ export const SettingsView: React.FC = () => {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Settings Export / Import */}
+            <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 space-y-4">
+              <div>
+                <h4 className="text-lg font-bold text-gray-900">Einstellungen</h4>
+                <p className="text-sm text-gray-500">
+                  Alle Einstellungen als JSON-Datei exportieren oder aus einer Datei importieren &mdash; ideal beim Wechsel auf ein neues Ger\u00e4t.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleExportSettings}
+                  className="px-5 py-3 rounded-xl font-bold bg-white border border-gray-200 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                >
+                  <Download size={16} />
+                  Einstellungen exportieren
+                </button>
+
+                <button
+                  onClick={() => importFileRef.current?.click()}
+                  className="px-5 py-3 rounded-xl font-bold bg-black text-white hover:bg-gray-800 transition-colors flex items-center gap-2"
+                >
+                  <Upload size={16} />
+                  Einstellungen importieren
+                </button>
+
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={handleImportSettings}
+                />
+              </div>
+
+              {importStatus && (
+                <div className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold animate-enter ${
+                  importStatus.success
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {importStatus.success ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                  {importStatus.message}
+                </div>
+              )}
             </div>
           </div>
         );
