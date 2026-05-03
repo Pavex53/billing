@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { AppSettings, Article, Client, Invoice, InvoiceElement, InvoiceItem } from '../types';
+import type { AppSettings, Invoice, InvoiceElement, InvoiceItem } from '../types';
 import { CanvasElement } from './CanvasElement';
-import { useActiveTemplateQuery, useUpsertTemplateMutation } from '../hooks/useTemplates';
+import { useActiveTemplateQuery } from '../hooks/useTemplates';
 import { INITIAL_INVOICE_TEMPLATE, INITIAL_OFFER_TEMPLATE, A4_WIDTH_PX, A4_HEIGHT_PX } from '../constants';
 import { useSettingsQuery } from '../hooks/useSettings';
 import { MOCK_SETTINGS } from '../data/mockData';
@@ -11,8 +11,6 @@ import { useClientsQuery } from '../hooks/useClients';
 import { useProjectsQuery } from '../hooks/useProjects';
 import { getPreviewElements } from '../utils/documentPreview';
 import { Trash2, Plus, ChevronDown, ChevronUp, Search } from 'lucide-react';
-
-const generateId = () => Math.random().toString(36).substring(2, 9);
 
 interface InvoiceDocumentEditorProps {
   invoice: Invoice;
@@ -34,11 +32,19 @@ export const InvoiceDocumentEditor: React.FC<InvoiceDocumentEditorProps> = ({
   const { data: articles = [] } = useArticlesQuery();
   const { data: clients = [] } = useClientsQuery();
 
+  const [formData, setFormData] = useState<Invoice>({
+    ...invoice,
+    items: invoice.items?.length > 0 ? invoice.items : [{ description: '', quantity: 1, price: 0, total: 0 }],
+    payments: invoice.payments ?? [],
+    history: invoice.history ?? [],
+  });
+
   const { data: activeTemplate } = useActiveTemplateQuery(templateType);
   const effectiveTemplate: InvoiceElement[] =
-    (activeTemplate?.elements && (activeTemplate.elements as InvoiceElement[]).length > 0
-    ? (activeTemplate.elements as InvoiceElement[])
-    : (templateType === 'offer' ? INITIAL_OFFER_TEMPLATE : INITIAL_INVOICE_TEMPLATE));
+    activeTemplate?.elements && (activeTemplate.elements as InvoiceElement[]).length > 0
+      ? (activeTemplate.elements as InvoiceElement[])
+      : (templateType === 'offer' ? INITIAL_OFFER_TEMPLATE : INITIAL_INVOICE_TEMPLATE);
+
   const [selectedClientId, setSelectedClientId] = useState<string>(invoice.clientId ?? '');
   const [articleToAddId, setArticleToAddId] = useState<string>('');
   const { data: projects = [] } = useProjectsQuery(
@@ -47,23 +53,15 @@ export const InvoiceDocumentEditor: React.FC<InvoiceDocumentEditorProps> = ({
   const projectTouchedRef = React.useRef(false);
 
   const previewElements = useMemo(() => {
-      return getPreviewElements(formData, effectiveTemplate, effectiveSettings);
+    return getPreviewElements(formData, effectiveTemplate, effectiveSettings);
   }, [formData, effectiveSettings, effectiveTemplate]);
 
   const categoryOptions = useMemo(() => {
-      const fromSettings = (effectiveSettings.catalog?.categories ?? []).map((c) => c.name).filter(Boolean);
-      const fromArticles = articles.map((a) => a.category).filter(Boolean);
-      return Array.from(new Set([...fromSettings, ...fromArticles])).sort();
+    const fromSettings = (effectiveSettings.catalog?.categories ?? []).map((c) => c.name).filter(Boolean);
+    const fromArticles = articles.map((a) => a.category).filter(Boolean);
+    return Array.from(new Set([...fromSettings, ...fromArticles])).sort();
   }, [effectiveSettings, articles]);
 
-  const [formData, setFormData] = useState<Invoice>({
-    ...invoice,
-    items: invoice.items?.length > 0 ? invoice.items : [{ description: '', quantity: 1, price: 0, total: 0 }],
-    payments: invoice.payments ?? [],
-    history: invoice.history ?? [],
-  });
-
-  // Sync client address when client changes
   useEffect(() => {
     if (!selectedClientId) return;
     const client = clients.find((c) => c.id === selectedClientId);
@@ -167,9 +165,7 @@ export const InvoiceDocumentEditor: React.FC<InvoiceDocumentEditorProps> = ({
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-gray-950">
-      {/* Left Panel: Form */}
       <div className="w-[450px] flex flex-col bg-white border-r border-gray-200 h-full shadow-xl z-10">
-        {/* Header */}
         <div className="p-6 border-b border-gray-100 bg-white">
           <div className="flex items-center gap-3">
             <button onClick={onBack} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100">
@@ -184,10 +180,7 @@ export const InvoiceDocumentEditor: React.FC<InvoiceDocumentEditorProps> = ({
           </div>
         </div>
 
-        {/* Scrollable form */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-
-          {/* Client Section */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             <button
               onClick={() => toggleSection('client')}
@@ -198,7 +191,6 @@ export const InvoiceDocumentEditor: React.FC<InvoiceDocumentEditorProps> = ({
             </button>
             {openSections.client && (
               <div className="p-4 space-y-3">
-                {/* Client selector */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Kunde auswählen</label>
                   <div className="relative">
@@ -260,7 +252,6 @@ export const InvoiceDocumentEditor: React.FC<InvoiceDocumentEditorProps> = ({
             )}
           </div>
 
-          {/* Invoice Details Section */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             <button
               onClick={() => toggleSection('invoice')}
@@ -305,7 +296,6 @@ export const InvoiceDocumentEditor: React.FC<InvoiceDocumentEditorProps> = ({
             )}
           </div>
 
-          {/* Items Section */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             <button
               onClick={() => toggleSection('items')}
@@ -417,7 +407,6 @@ export const InvoiceDocumentEditor: React.FC<InvoiceDocumentEditorProps> = ({
             )}
           </div>
 
-          {/* Notes Section */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             <button
               onClick={() => toggleSection('notes')}
@@ -438,10 +427,8 @@ export const InvoiceDocumentEditor: React.FC<InvoiceDocumentEditorProps> = ({
               </div>
             )}
           </div>
-
         </div>
 
-        {/* Footer */}
         <div className="p-6 border-t border-gray-200 bg-white animate-enter" style={{ animationDelay: '450ms' }}>
           <div className="flex gap-3">
             <button
@@ -460,28 +447,26 @@ export const InvoiceDocumentEditor: React.FC<InvoiceDocumentEditorProps> = ({
         </div>
       </div>
 
-      {/* Right Area: Live Preview */}
       <div className="flex-1 flex flex-col items-center justify-start pt-8 overflow-auto bg-gray-950 px-8 pb-8">
-          <div className="mb-4 text-white/50 text-xs font-medium uppercase tracking-wider flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            Live Vorschau
-          </div>
-          {/* A4 Preview - Read Only */}
-          <div
-              className="bg-white shadow-2xl relative transition-transform origin-top"
-              style={{ width: A4_WIDTH_PX, height: A4_HEIGHT_PX, transform: 'scale(0.6)', transformOrigin: 'top center' }}
-          >
-              {previewElements.map((el) => (
-                  <CanvasElement
-                      key={el.id}
-                      element={el}
-                      elements={previewElements}
-                      isSelected={false}
-                      scale={1}
-                      readOnly={true} // Crucial: disables dragging/editing in preview
-                  />
-              ))}
-          </div>
+        <div className="mb-4 text-white/50 text-xs font-medium uppercase tracking-wider flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Live Vorschau
+        </div>
+        <div
+          className="bg-white shadow-2xl relative transition-transform origin-top"
+          style={{ width: A4_WIDTH_PX, height: A4_HEIGHT_PX, transform: 'scale(0.6)', transformOrigin: 'top center' }}
+        >
+          {previewElements.map((el) => (
+            <CanvasElement
+              key={el.id}
+              element={el}
+              elements={previewElements}
+              isSelected={false}
+              scale={1}
+              readOnly={true}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
