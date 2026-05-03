@@ -152,6 +152,9 @@ export const InvoiceItemSchema = z.object({
   discount: z.number().optional(),
 });
 
+// Plural alias used by recurringRepo and other consumers
+export const InvoiceItemsSchema = z.array(InvoiceItemSchema);
+
 const CompanySettingsSchema = z.object({
   name: z.string(),
   owner: z.string().optional().default(''),
