@@ -17,7 +17,12 @@ export const PrintDocument: React.FC<{ kind: 'invoice' | 'offer'; id: string }> 
   const { data: settingsFromDb } = useSettingsQuery();
   const settings = settingsFromDb ?? MOCK_SETTINGS;
   const { data: activeTemplate } = useActiveTemplateQuery(kind);
-  const template = activeTemplate?.elements ?? (kind === 'offer' ? INITIAL_OFFER_TEMPLATE : INITIAL_INVOICE_TEMPLATE);
+
+  // Fall back to the built-in template when the DB template is missing or
+  // has no elements (e.g. failed schema validation returns an empty array).
+  const templateElements = (activeTemplate?.elements && activeTemplate.elements.length > 0)
+    ? activeTemplate.elements
+    : (kind === 'offer' ? INITIAL_OFFER_TEMPLATE : INITIAL_INVOICE_TEMPLATE);
 
   const invoicesQuery = useInvoicesQuery();
   const offersQuery = useOffersQuery();
@@ -35,8 +40,8 @@ export const PrintDocument: React.FC<{ kind: 'invoice' | 'offer'; id: string }> 
 
   const previewElements = React.useMemo(() => {
     if (!doc) return [];
-    return getPreviewElements(doc, template as any, settings as any);
-  }, [doc, template, settings]);
+    return getPreviewElements(doc, templateElements as any, settings as any);
+  }, [doc, templateElements, settings]);
 
   // Reset flag on mount
   React.useEffect(() => {
@@ -52,17 +57,14 @@ export const PrintDocument: React.FC<{ kind: 'invoice' | 'offer'; id: string }> 
   // BrowserWindows (show: false). Use setTimeout instead so the signal is
   // always delivered even when the window is off-screen.
   React.useEffect(() => {
-    // Still loading – wait
     if (isLoading) return;
 
     if (doc && previewElements.length > 0) {
-      // Document found and elements computed – give the browser 100 ms to
-      // finish painting before printToPDF captures the frame.
+      // Document found – give the browser 100 ms to finish painting.
       const t = setTimeout(signalReady, 100);
       return () => clearTimeout(t);
     } else if (isSuccess) {
-      // Queries finished but doc not found – signal anyway so we get the
-      // "not found" page instead of an Electron timeout.
+      // Queries done but doc not found – render the "not found" page.
       const t = setTimeout(signalReady, 50);
       return () => clearTimeout(t);
     }
