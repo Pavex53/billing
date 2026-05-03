@@ -53,6 +53,10 @@ export const exportPdf = async (params: {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      // Disable background throttling so setTimeout / JS timers fire normally
+      // in this hidden window. Without this, rAF and timers are heavily throttled
+      // which causes the PDF to be captured before React has finished rendering.
+      backgroundThrottling: false,
     },
   });
 
@@ -75,7 +79,7 @@ export const exportPdf = async (params: {
     pageSize: 'A4',
     landscape: false,
     printBackground: true,
-    marginsType: 0,
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
   });
 
   const bytes = new Uint8Array(buffer);
@@ -112,6 +116,7 @@ export const exportEurPdf = async (params: {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      backgroundThrottling: false,
     },
   });
 
@@ -138,7 +143,7 @@ export const exportEurPdf = async (params: {
     pageSize: 'A4',
     landscape: false,
     printBackground: true,
-    marginsType: 0,
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
   });
 
   fs.writeFileSync(destPath, new Uint8Array(buffer));
