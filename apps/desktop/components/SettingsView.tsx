@@ -26,9 +26,14 @@ export const SettingsView: React.FC = () => {
   const [backupPath, setBackupPath] = useState('');
   const [importStatus, setImportStatus] = useState<{ success: boolean; message: string } | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
+  // Nur beim ersten Laden übernehmen, danach nie mehr überschreiben
+  const initialLoadDone = useRef(false);
 
   React.useEffect(() => {
-    if (loadedSettings) setSettings(loadedSettings);
+    if (loadedSettings && !initialLoadDone.current) {
+      setSettings(loadedSettings);
+      initialLoadDone.current = true;
+    }
   }, [loadedSettings]);
 
   const handleSave = async () => {
@@ -760,7 +765,7 @@ export const SettingsView: React.FC = () => {
                     if (res?.path) {
                       setSettings((prev) => ({
                         ...prev,
-                        output: { ...(prev.output ?? {}), pdfOutputPath: res.path },
+                        output: { ...(prev.output ?? {}), pdfOutputPath: res.path as string },
                       }));
                     }
                   }}
