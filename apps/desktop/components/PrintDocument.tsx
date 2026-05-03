@@ -47,21 +47,24 @@ export const PrintDocument: React.FC<{ kind: 'invoice' | 'offer'; id: string }> 
     return () => clearTimeout(safetyTimer);
   }, []);
 
-  // Signal ready as soon as we have a result (found OR not found after load)
+  // Signal ready as soon as we have a result (found OR not found after load).
+  // NOTE: requestAnimationFrame is throttled / never fires in hidden Electron
+  // BrowserWindows (show: false). Use setTimeout instead so the signal is
+  // always delivered even when the window is off-screen.
   React.useEffect(() => {
     // Still loading – wait
     if (isLoading) return;
 
     if (doc && previewElements.length > 0) {
-      // Document found and elements computed – wait two animation frames so
-      // the browser has fully painted the canvas before printToPDF.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(signalReady);
-      });
+      // Document found and elements computed – give the browser 100 ms to
+      // finish painting before printToPDF captures the frame.
+      const t = setTimeout(signalReady, 100);
+      return () => clearTimeout(t);
     } else if (isSuccess) {
       // Queries finished but doc not found – signal anyway so we get the
-      // "not found" page instead of an Electron timeout error.
-      requestAnimationFrame(signalReady);
+      // "not found" page instead of an Electron timeout.
+      const t = setTimeout(signalReady, 50);
+      return () => clearTimeout(t);
     }
   }, [doc, previewElements.length, isLoading, isSuccess]);
 
