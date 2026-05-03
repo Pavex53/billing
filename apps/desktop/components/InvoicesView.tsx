@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import {
   Search, Plus, FileText,
   Clock, ArrowLeft,
   Share2, Check,
   ChevronDown, ArrowUpRight,
-  AlertTriangle, Mail, Gavel, CheckCircle, X,
+  AlertTriangle, Gavel, CheckCircle, X,
   Download, Printer, Send, Paperclip, MoreHorizontal, Calendar, User, RefreshCw, Link, ExternalLink, Trash2, LayoutTemplate, Edit3, Euro, ArrowRight
 } from 'lucide-react';
 import { Badge, Button } from '@billme/ui';
@@ -89,10 +88,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   const [selectedForDunning, setSelectedForDunning] = useState<string[]>([]);
   const [isDunningProcessing, setIsDunningProcessing] = useState(false);
 
-  // Email State
-  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [emailData, setEmailData] = useState({ to: '', subject: '', message: '' });
-
   // Multi-select (List View)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
@@ -111,7 +106,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   const [paymentDeleteError, setPaymentDeleteError] = useState<string | null>(null);
 
   // Choose data source based on document type
-  // In a real app, this would come from a context or prop
   const { data: invoices = [], isLoading: isLoadingInvoices } = useInvoicesQuery();
   const upsertInvoice = useUpsertInvoiceMutation();
   const deleteInvoice = useDeleteInvoiceMutation();
@@ -292,7 +286,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
         setToastMessage('Rechnung erfolgreich erstellt!');
         setTimeout(() => {
           setShowShareToast(false);
-          // Switch to invoices view and open the new invoice
           switchDocumentType('invoice');
           setTimeout(() => {
             setSelectedId(newInvoice.id);
@@ -312,73 +305,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       setSelectedId(null);
       setViewMode('list');
       clearSelection();
-  };
-
-  // --- Email Logic ---
-  const handleOpenEmail = () => {
-      if(!selectedDocument) return;
-      setEmailData({
-          to: selectedDocument.clientEmail,
-          subject: `${documentType === 'invoice' ? 'Rechnung' : 'Angebot'} ${selectedDocument.number}`,
-          message: `Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie ${documentType === 'invoice' ? 'Ihre Rechnung' : 'Ihr Angebot'} ${selectedDocument.number}.\n\nMit freundlichen Grüßen,\nMustermann GmbH`
-      });
-      setIsEmailModalOpen(true);
-  };
-
-  const handleSendEmail = () => {
-      if(!selectedDocument) return;
-      void (async () => {
-        try {
-          setIsEmailModalOpen(false);
-          setToastMessage('E-Mail wird gesendet...');
-          setShowShareToast(true);
-
-          const result = await ipc.email.send({
-            documentType,
-            documentId: selectedDocument.id,
-            recipientEmail: emailData.to,
-            recipientName: selectedDocument.client,
-            subject: emailData.subject,
-            bodyText: emailData.message,
-          });
-
-          if (!result.success) {
-            setToastMessage(`Fehler: ${result.error}`);
-            setTimeout(() => setShowShareToast(false), 5000);
-            return;
-          }
-
-          // Update document history
-          const historyEntry = {
-              date: new Date().toISOString().split('T')[0],
-              action: `Per E-Mail gesendet an ${emailData.to}`
-          };
-
-          if (documentType === 'invoice') {
-            upsertInvoice.mutate({
-              invoice: {
-                ...selectedDocument,
-                history: [historyEntry, ...(selectedDocument.history ?? [])],
-              },
-              reason: 'email_sent',
-            });
-          } else {
-            upsertOffer.mutate({
-              offer: {
-                ...selectedDocument,
-                history: [historyEntry, ...(selectedDocument.history ?? [])],
-              },
-              reason: 'email_sent',
-            });
-          }
-
-          setToastMessage('E-Mail erfolgreich versendet!');
-          setTimeout(() => setShowShareToast(false), 3000);
-        } catch (e) {
-          setToastMessage(`Fehler: ${String(e)}`);
-          setTimeout(() => setShowShareToast(false), 5000);
-        }
-      })();
   };
 
   const handleFinalizeDraftInvoice = () => {
@@ -573,60 +499,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               </div>
           </div>
       );
-  };
-
-  // --- Email Modal ---
-  const renderEmailModal = () => {
-    if (!isEmailModalOpen) return null;
-    return (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm p-4 animate-in fade-in duration-200">
-             <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col animate-scale-in">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-3xl">
-                    <h3 className="text-lg font-black flex items-center gap-2"><Mail size={18}/> Per E-Mail senden</h3>
-                    <button onClick={() => setIsEmailModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-full"><X size={18}/></button>
-                </div>
-                <div className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1">Empfänger</label>
-                        <input 
-                            type="email" 
-                            value={emailData.to}
-                            onChange={e => setEmailData({...emailData, to: e.target.value})}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-accent outline-none"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1">Betreff</label>
-                        <input 
-                            type="text" 
-                            value={emailData.subject}
-                            onChange={e => setEmailData({...emailData, subject: e.target.value})}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-accent outline-none"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1">Nachricht</label>
-                        <textarea 
-                            rows={6}
-                            value={emailData.message}
-                            onChange={e => setEmailData({...emailData, message: e.target.value})}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-accent outline-none resize-none"
-                        />
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <Paperclip size={14} />
-                        <span>Angehängt: {selectedDocument?.number}.pdf</span>
-                    </div>
-                </div>
-                <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex justify-end gap-3">
-                    <button onClick={() => setIsEmailModalOpen(false)} className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-200 transition-colors">Abbrechen</button>
-                    <Button onClick={handleSendEmail} size="md">
-                        <Send size={16} /> Senden
-                    </Button>
-                </div>
-             </div>
-        </div>
-    );
   };
 
   const renderPaymentModal = () => {
@@ -871,7 +743,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       return (
           <div className="bg-white rounded-[2.5rem] p-8 min-h-full shadow-sm animate-enter relative">
               
-              {renderEmailModal()}
               {renderPaymentModal()}
               {renderPaymentDeleteModal()}
 
@@ -1032,17 +903,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       <button 
                         onClick={handleSharePaymentLink}
                         className="h-10 w-10 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-full flex items-center justify-center transition-colors"
-                        title="Link kopieren"
+                        title="Zahllink kopieren"
                       >
                           <Share2 size={18} />
                       </button>
-                      <Button
-                        onClick={handleOpenEmail}
-                        size="md"
-                      >
-                          <Mail size={16} />
-                          Senden
-                      </Button>
                   </div>
               </div>
 
@@ -1435,7 +1299,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   return (
     <div className="bg-white rounded-[2.5rem] p-8 min-h-full shadow-sm flex flex-col relative animate-enter">
       {renderDunningModal()}
-      {renderEmailModal()}
       {renderPaymentModal()}
       {renderPaymentDeleteModal()}
       {renderBulkDeleteModal()}
@@ -1631,7 +1494,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                        {selectedIds.has(doc.id) && <Check size={12} />}
                      </div>
                    </button>
-                   {/* Flex Column 1: Info (Flex 1 to take remaining space) */}
+                   {/* Flex Column 1: Info */}
                    <div className="flex-1 flex items-center gap-4 min-w-0">
                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-gray-400 group-hover:text-accent group-hover:bg-black transition-colors shrink-0 ${documentType === 'offer' ? 'bg-purple-50 text-purple-400' : 'bg-gray-50'}`}>
                            <FileText size={20} />
@@ -1645,29 +1508,29 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       </div>
                   </div>
 
-                  {/* Flex Column 2: Date (Fixed Width) */}
+                  {/* Flex Column 2: Date */}
                   <div className="hidden md:block w-32 text-right shrink-0">
                       <p className="text-xs font-bold text-gray-400 uppercase">Datum</p>
                       <p className="text-sm font-bold">{formatDate(doc.date)}</p>
                   </div>
 
-                  {/* Flex Column 3: Due Date (Fixed Width) */}
+                  {/* Flex Column 3: Due Date */}
                   <div className="hidden md:block w-32 text-right shrink-0">
                       <p className="text-xs font-bold text-gray-400 uppercase">{documentType === 'offer' ? 'Gültig bis' : 'Fällig'}</p>
                       <p className={`text-sm font-bold ${doc.status === 'overdue' ? 'text-error' : ''}`}>{formatDate(doc.dueDate)}</p>
                   </div>
 
-                  {/* Flex Column 4: Amount (Fixed Width) */}
+                  {/* Flex Column 4: Amount */}
                   <div className="w-32 text-right shrink-0">
                       <p className="text-lg font-mono font-bold truncate">{formatCurrency(doc.amount)}</p>
                   </div>
 
-                  {/* Flex Column 5: Status (Fixed Width) */}
+                  {/* Flex Column 5: Status */}
                   <div className="w-28 flex justify-end shrink-0">
                       <Badge status={doc.status} />
                   </div>
 
-                  {/* Flex Column 6: Arrow (Fixed Width) */}
+                  {/* Flex Column 6: Arrow */}
                   <div className="w-10 flex justify-center shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button className="p-2 hover:bg-gray-100 rounded-full" onClick={(e) => {
                         e.stopPropagation();
