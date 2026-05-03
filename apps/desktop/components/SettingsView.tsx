@@ -199,7 +199,7 @@ export const SettingsView: React.FC = () => {
           <div className="max-w-2xl space-y-8 animate-enter">
             <div>
               <h3 className="text-xl font-bold mb-1">Unternehmensdaten</h3>
-              <p className="text-gray-500 text-sm">Diese Informationen erscheinen im Kopf- und Fu\u00dfbereich der Rechnung.</p>
+              <p className="text-gray-500 text-sm">Diese Informationen erscheinen im Kopf- und Fußbereich der Rechnung.</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6">
@@ -213,7 +213,7 @@ export const SettingsView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Inhaber / Gesch\u00e4ftsf\u00fchrer</label>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Inhaber / Geschäftsführer</label>
                 <input
                   type="text"
                   value={settings.company.owner}
@@ -223,7 +223,7 @@ export const SettingsView: React.FC = () => {
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Stra\u00dfe & Hausnr.</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Straße & Hausnr.</label>
                   <input
                     type="text"
                     value={settings.company.street}
@@ -289,8 +289,8 @@ export const SettingsView: React.FC = () => {
             <div>
               <h3 className="text-xl font-bold mb-1">Kategorien</h3>
               <p className="text-gray-500 text-sm">
-                Kategorien f\u00fcr \u201eProdukte & Leistungen\". \u00c4nderungen k\u00f6nnen beim Speichern automatisch in Artikeln
-                \u00fcbernommen werden.
+                Kategorien für „Produkte & Leistungen". Änderungen können beim Speichern automatisch in Artikeln
+                übernommen werden.
               </p>
             </div>
 
@@ -319,7 +319,7 @@ export const SettingsView: React.FC = () => {
 
               {(settings.catalog?.categories ?? []).length === 0 ? (
                 <div className="p-4 bg-white rounded-2xl border border-gray-100 text-sm text-gray-500">
-                  Noch keine Kategorien. Lege Kategorien an, damit du sie bei Artikeln ausw\u00e4hlen kannst.
+                  Noch keine Kategorien. Lege Kategorien an, damit du sie bei Artikeln auswählen kannst.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -369,7 +369,7 @@ export const SettingsView: React.FC = () => {
           <div className="max-w-2xl space-y-8 animate-enter">
             <div>
               <h3 className="text-xl font-bold mb-1">Bankverbindung & Steuer</h3>
-              <p className="text-gray-500 text-sm">Wichtig f\u00fcr den Zahlungsverkehr und die Pflichtangaben auf der Rechnung.</p>
+              <p className="text-gray-500 text-sm">Wichtig für den Zahlungsverkehr und die Pflichtangaben auf der Rechnung.</p>
             </div>
 
             <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
@@ -447,7 +447,7 @@ export const SettingsView: React.FC = () => {
           <div className="max-w-2xl space-y-8 animate-enter">
             <div>
               <h3 className="text-xl font-bold mb-1">Nummernkreise</h3>
-              <p className="text-gray-500 text-sm">Definieren Sie das Format f\u00fcr Ihre Rechnungs-, Angebots- und Kundennummern.</p>
+              <p className="text-gray-500 text-sm">Definieren Sie das Format für Ihre Rechnungs-, Angebots- und Kundennummern.</p>
             </div>
 
             <div className="bg-black/5 rounded-3xl p-6 border border-black/5">
@@ -464,7 +464,7 @@ export const SettingsView: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Pr\u00e4fix Format</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Präfix Format</label>
                     <div className="group relative">
                       <HelpCircle size={12} className="text-gray-400 cursor-help" />
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black text-white text-xs p-2 rounded pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -480,7 +480,7 @@ export const SettingsView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">N\u00e4chste Nummer</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Nächste Nummer</label>
                   <input
                     type="number"
                     value={settings.numbers.nextInvoiceNumber}
@@ -495,7 +495,7 @@ export const SettingsView: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Mindestl\u00e4nge (Padding)</label>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Mindestlänge (Padding)</label>
                 <input
                   type="range"
                   min="1"
@@ -525,7 +525,7 @@ export const SettingsView: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Pr\u00e4fix Format</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Präfix Format</label>
                   <input
                     type="text"
                     value={settings.numbers.offerPrefix}
@@ -534,7 +534,7 @@ export const SettingsView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">N\u00e4chste Nummer</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Nächste Nummer</label>
                   <input
                     type="number"
                     value={settings.numbers.nextOfferNumber}
@@ -562,7 +562,7 @@ export const SettingsView: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Pr\u00e4fix Format</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Präfix Format</label>
                   <input
                     type="text"
                     value={settings.numbers.customerPrefix}
@@ -571,7 +571,7 @@ export const SettingsView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">N\u00e4chste Nummer</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Nächste Nummer</label>
                   <input
                     type="number"
                     value={settings.numbers.nextCustomerNumber}
@@ -586,7 +586,7 @@ export const SettingsView: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Mindestl\u00e4nge (Padding)</label>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Mindestlänge (Padding)</label>
                 <input
                   type="range"
                   min="1"
@@ -630,7 +630,7 @@ export const SettingsView: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm">Kleinunternehmerregelung anwenden</h4>
-                    <p className="text-xs text-gray-500 mt-1">Keine Umsatzsteuerberechnung gem. \u00a7 19 UStG.</p>
+                    <p className="text-xs text-gray-500 mt-1">Keine Umsatzsteuerberechnung gem. § 19 UStG.</p>
                   </div>
                 </div>
               </div>
@@ -648,7 +648,7 @@ export const SettingsView: React.FC = () => {
                     {settings.eInvoice.enabled && <CheckCircle size={14} className="text-accent" />}
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm">ZUGFeRD Export f\u00fcr Rechnungen aktivieren</h4>
+                    <h4 className="font-bold text-sm">ZUGFeRD Export für Rechnungen aktivieren</h4>
                     <p className="text-xs text-gray-500 mt-1">
                       Exportiert Rechnungen als ZUGFeRD EN16931 (Profil {settings.eInvoice.profile}, Version {settings.eInvoice.version}).
                     </p>
@@ -681,7 +681,7 @@ export const SettingsView: React.FC = () => {
             <div className="bg-white border border-gray-100 rounded-3xl p-6">
               <h4 className="font-bold text-sm mb-2">Umsatzsteuer-Basis (Dashboard)</h4>
               <p className="text-xs text-gray-500 mb-4">
-                Soll: basiert auf gestellten Rechnungen (Status \u2260 Entwurf) nach Rechnungsdatum. Ist: basiert auf erfassten Zahlungen nach Zahlungsdatum.
+                Soll: basiert auf gestellten Rechnungen (Status ≠ Entwurf) nach Rechnungsdatum. Ist: basiert auf erfassten Zahlungen nach Zahlungsdatum.
               </p>
               <div className="flex items-center gap-2 bg-gray-100/80 p-1.5 rounded-full border border-gray-200 w-fit">
                 {(['soll', 'ist'] as const).map((m) => (
@@ -713,7 +713,7 @@ export const SettingsView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Fu\u00dfzeilentext (Zusatz)</label>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Fußzeilentext (Zusatz)</label>
                 <textarea
                   value={settings.legal.defaultFooterText}
                   onChange={(e) => updateNested('legal', 'defaultFooterText', e.target.value)}
@@ -739,20 +739,38 @@ export const SettingsView: React.FC = () => {
                 <h4 className="text-lg font-bold text-gray-900">PDF Speicherordner</h4>
               </div>
               <p className="text-sm text-gray-500">
-                Ordner, in dem exportierte PDFs automatisch gespeichert werden. Leer lassen f\u00fcr den Standard-Exportordner der App.
+                Ordner, in dem exportierte PDFs automatisch gespeichert werden. Leer lassen für den Standard-Exportordner der App.
               </p>
-              <input
-                type="text"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-accent outline-none transition-shadow"
-                placeholder="z.B. C:\\Users\\Enes\\Dokumente\\Rechnungen"
-                value={settings.output?.pdfOutputPath ?? ''}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    output: { ...(prev.output ?? {}), pdfOutputPath: e.target.value },
-                  }))
-                }
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-accent outline-none transition-shadow"
+                  placeholder="z.B. C:\Users\Enes\Dokumente\Rechnungen"
+                  value={settings.output?.pdfOutputPath ?? ''}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      output: { ...(prev.output ?? {}), pdfOutputPath: e.target.value },
+                    }))
+                  }
+                />
+                <button
+                  onClick={async () => {
+                    const res = await ipc.dialog.pickFolder({ title: 'PDF-Speicherordner auswählen' });
+                    if (res?.path) {
+                      setSettings((prev) => ({
+                        ...prev,
+                        output: { ...(prev.output ?? {}), pdfOutputPath: res.path },
+                      }));
+                    }
+                  }}
+                  className="px-4 py-3 rounded-xl font-bold bg-white border border-gray-200 hover:bg-gray-100 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
+                  title="Ordner auswählen"
+                >
+                  <FolderOpen size={16} />
+                  Durchsuchen
+                </button>
+              </div>
               {settings.output?.pdfOutputPath ? (
                 <p className="text-xs text-green-700 font-medium flex items-center gap-1">
                   <CheckCircle size={13} />
@@ -767,7 +785,7 @@ export const SettingsView: React.FC = () => {
             <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h4 className="text-lg font-bold text-gray-900">Audit</h4>
-                <p className="text-sm text-gray-500">Audit-Log pr\u00fcfen und als CSV exportieren.</p>
+                <p className="text-sm text-gray-500">Audit-Log prüfen und als CSV exportieren.</p>
               </div>
               <div className="flex gap-3">
                 <button
@@ -834,7 +852,7 @@ export const SettingsView: React.FC = () => {
                   <button
                     onClick={async () => {
                       if (!backupPath.trim()) return;
-                      if (!confirm('Aktuelle Daten werden \u00fcberschrieben. Fortfahren?')) return;
+                      if (!confirm('Aktuelle Daten werden überschrieben. Fortfahren?')) return;
                       try {
                         await ipc.db.restore({ path: backupPath.trim() });
                         alert('Wiederhergestellt. App wird neu geladen...');
@@ -857,7 +875,7 @@ export const SettingsView: React.FC = () => {
               <div>
                 <h4 className="text-lg font-bold text-gray-900">Einstellungen</h4>
                 <p className="text-sm text-gray-500">
-                  Alle Einstellungen als JSON-Datei exportieren oder aus einer Datei importieren &mdash; ideal beim Wechsel auf ein neues Ger\u00e4t.
+                  Alle Einstellungen als JSON-Datei exportieren oder aus einer Datei importieren &mdash; ideal beim Wechsel auf ein neues Gerät.
                 </p>
               </div>
 
