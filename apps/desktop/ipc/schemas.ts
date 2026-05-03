@@ -447,6 +447,11 @@ export const appSettingsSchema = z.object({
       recentPaymentsLimit: 5,
       topClientsLimit: 5,
     }),
+  output: z
+    .object({
+      pdfOutputPath: z.string().default(''),
+    })
+    .default({ pdfOutputPath: '' }),
 });
 
 export const upsertClientPayloadSchema = z.object({
