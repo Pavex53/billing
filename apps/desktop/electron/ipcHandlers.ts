@@ -507,6 +507,15 @@ export const registerIpcHandlers = (
     return { path: res.filePaths[0] ?? null };
   });
 
+  register(ipcMain, 'dialog:pickFolder', async ({ title }) => {
+    const res = await dialog.showOpenDialog({
+      title: title ?? 'Ordner auswählen',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (res.canceled || res.filePaths.length === 0) return { path: null };
+    return { path: res.filePaths[0] ?? null };
+  });
+
   register(ipcMain, 'finance:importPreview', async (args) => {
     return previewCsv({
       filePath: args.path,
