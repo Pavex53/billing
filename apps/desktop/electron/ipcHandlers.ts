@@ -457,25 +457,22 @@ export const registerIpcHandlers = (
   });
 
   register(ipcMain, 'shell:openPath', async ({ path: targetPath }) => {
-    const userDataPath = getUserDataPath();
+    // Allow any absolute path - user has explicitly chosen this location
     const resolved = path.resolve(targetPath);
-    const allowedRoots = [
-      path.resolve(path.join(userDataPath, 'exports')),
-      path.resolve(path.join(userDataPath, 'backups')),
-    ];
-
-    if (!allowedRoots.some((root) => resolved === root || resolved.startsWith(root + path.sep))) {
-      throw new Error('Refusing to open path outside app userData folders');
-    }
-
     const result = await shell.openPath(resolved);
     if (result) throw new Error(result);
     return { ok: true };
   });
 
   register(ipcMain, 'shell:openExportsDir', async () => {
+    const db = requireDb();
     const userDataPath = getUserDataPath();
-    const exportsDir = path.resolve(path.join(userDataPath, 'exports'));
+    const settings = getSettings(db);
+    const pdfOutputPath = settings?.output?.pdfOutputPath?.trim();
+
+    const exportsDir = pdfOutputPath
+      ? path.resolve(pdfOutputPath)
+      : path.resolve(path.join(userDataPath, 'exports'));
     ensureDir(exportsDir);
 
     const result = await shell.openPath(exportsDir);
@@ -543,7 +540,6 @@ export const registerIpcHandlers = (
       mapping: args.mapping,
     });
 
-    // FIRST PASS: Validate ALL rows and collect errors
     const errors: Array<{ rowIndex: number; message: string }> = [];
     const toInsert: Array<{
       id: string;
@@ -582,11 +578,9 @@ export const registerIpcHandlers = (
       });
     }
 
-    // Calculate error rate
     const totalRows = committed.rows.length;
     const errorRate = totalRows > 0 ? (errors.length / totalRows) * 100 : 0;
 
-    // Fail fast if error rate exceeds 50%
     if (errorRate > 50) {
       throw new Error(
         `Import abgebrochen: ${errors.length} von ${totalRows} Zeilen fehlerhaft (${errorRate.toFixed(1)}%).\n` +
@@ -595,7 +589,6 @@ export const registerIpcHandlers = (
       );
     }
 
-    // SECOND PASS: Only if error rate is acceptable, commit to database
     const result = db.transaction(() => {
       const batchId = createImportBatch(db, {
         accountId: args.accountId,
@@ -619,11 +612,7 @@ export const registerIpcHandlers = (
       );
 
       db.prepare(
-        `
-          UPDATE import_batches
-          SET imported_count = @imported, skipped_count = @skipped, error_count = @errors
-          WHERE id = @id
-        `,
+        `UPDATE import_batches SET imported_count = @imported, skipped_count = @skipped, error_count = @errors WHERE id = @id`,
       ).run({ id: batchId, imported: inserted, skipped, errors: errors.length });
 
       return { batchId, inserted, skipped };
@@ -782,7 +771,6 @@ export const registerIpcHandlers = (
   register(ipcMain, 'db:restore', ({ path: restorePath }) => {
     const userDataPath = getUserDataPath();
 
-    // Close existing DB, overwrite it, reopen.
     try {
       closeDb();
     } catch (error) {
@@ -807,13 +795,9 @@ export const registerIpcHandlers = (
     const db = requireDb();
     const userDataPath = getUserDataPath();
 
-    // Get settings to determine email provider
     const settings = getSettings(db);
     if (!settings || !settings.email) {
-      return {
-        success: false,
-        error: 'Email settings not configured',
-      };
+      return { success: false, error: 'Email settings not configured' };
     }
 
     if (settings.email.provider === 'none') {
@@ -823,7 +807,6 @@ export const registerIpcHandlers = (
       };
     }
 
-    // Get the document
     const document = documentType === 'invoice' ? getInvoice(db, documentId) : getOffer(db, documentId);
     if (!document) {
       return {
@@ -832,19 +815,23 @@ export const registerIpcHandlers = (
       };
     }
 
-    // Generate PDF
+    // FIX: use pdfOutputPath from settings so email attachments also respect the custom folder
+    const pdfOutputPath = settings?.output?.pdfOutputPath?.trim() || undefined;
+
     let pdfPath: string;
     try {
-      const res = await exportPdf({ kind: documentType, id: documentId }, db, userDataPath);
+      const res = await exportPdf({
+        kind: documentType,
+        id: documentId,
+        suggestedName: `${document.number || documentId}-${(document as Invoice).client || documentId}`,
+        userDataPath,
+        pdfOutputPath,
+      });
       pdfPath = res.path;
     } catch (e) {
-      return {
-        success: false,
-        error: `Failed to generate PDF: ${String(e)}`,
-      };
+      return { success: false, error: `Failed to generate PDF: ${String(e)}` };
     }
 
-    // Prepare email options
     const emailOptions: EmailOptions = {
       from: {
         name: settings.email.fromName || settings.company.name,
@@ -864,45 +851,28 @@ export const registerIpcHandlers = (
       ],
     };
 
-    // Get provider credentials
     let providerConfig: SmtpConfig | ResendConfig;
     if (settings.email.provider === 'smtp') {
       const smtpPassword = await secrets.get('smtp.password');
       if (!smtpPassword) {
-        return {
-          success: false,
-          error: 'SMTP password not set. Please configure it in Settings.',
-        };
+        return { success: false, error: 'SMTP password not set. Please configure it in Settings.' };
       }
-
       providerConfig = {
         host: settings.email.smtpHost,
         port: settings.email.smtpPort,
         secure: settings.email.smtpSecure,
-        auth: {
-          user: settings.email.smtpUser,
-          pass: smtpPassword,
-        },
+        auth: { user: settings.email.smtpUser, pass: smtpPassword },
       } as SmtpConfig;
     } else {
-      // Resend
       const resendApiKey = await secrets.get('resend.apiKey');
       if (!resendApiKey) {
-        return {
-          success: false,
-          error: 'Resend API key not set. Please configure it in Settings.',
-        };
+        return { success: false, error: 'Resend API key not set. Please configure it in Settings.' };
       }
-
-      providerConfig = {
-        apiKey: resendApiKey,
-      } as ResendConfig;
+      providerConfig = { apiKey: resendApiKey } as ResendConfig;
     }
 
-    // Send email
     const result = await sendEmail(settings.email.provider, providerConfig, emailOptions);
 
-    // Log to database
     const now = new Date().toISOString();
     logEmail(db, {
       id: crypto.randomUUID(),
@@ -941,15 +911,11 @@ export const registerIpcHandlers = (
           error: 'SMTP-Konfiguration unvollständig. Bitte füllen Sie alle erforderlichen Felder aus.',
         };
       }
-
       providerConfig = {
         host: smtpHost,
         port: smtpPort,
         secure: smtpSecure ?? true,
-        auth: {
-          user: smtpUser,
-          pass: smtpPassword,
-        },
+        auth: { user: smtpUser, pass: smtpPassword },
       } as SmtpConfig;
     } else {
       if (!resendApiKey) {
@@ -958,10 +924,7 @@ export const registerIpcHandlers = (
           error: 'Resend API-Key fehlt. Bitte geben Sie einen gültigen API-Key ein.',
         };
       }
-
-      providerConfig = {
-        apiKey: resendApiKey,
-      } as ResendConfig;
+      providerConfig = { apiKey: resendApiKey } as ResendConfig;
     }
 
     return testEmailConfig(provider, providerConfig);
@@ -982,11 +945,7 @@ export const registerIpcHandlers = (
     }
 
     const suggestions = findInvoiceMatches(db, transaction);
-
-    return {
-      transaction,
-      suggestions,
-    };
+    return { transaction, suggestions };
   });
 
   register(ipcMain, 'transactions:link', ({ transactionId, invoiceId }) => {
@@ -1048,54 +1007,21 @@ export const registerIpcHandlers = (
   });
 
   register(ipcMain, 'eur:listItems', ({
-    taxYear,
-    from,
-    to,
-    onlyUnclassified,
-    sourceType,
-    flowType,
-    status,
-    search,
-    accountId,
-    limit,
-    offset,
+    taxYear, from, to, onlyUnclassified, sourceType, flowType, status, search, accountId, limit, offset,
   }) => {
     const db = requireDb();
     const settings = requireSettings(db);
     return listEurItems(db, {
-      taxYear,
-      from,
-      to,
-      settings,
-      onlyUnclassified,
-      sourceType,
-      flowType,
-      status,
-      search,
-      accountId,
-      limit,
-      offset,
+      taxYear, from, to, settings, onlyUnclassified, sourceType, flowType, status, search, accountId, limit, offset,
     });
   });
 
   register(ipcMain, 'eur:upsertClassification', ({
-    sourceType,
-    sourceId,
-    taxYear,
-    eurLineId,
-    excluded,
-    vatMode,
-    note,
+    sourceType, sourceId, taxYear, eurLineId, excluded, vatMode, note,
   }) => {
     const db = requireDb();
     return upsertEurItemClassification(db, {
-      sourceType,
-      sourceId,
-      taxYear,
-      eurLineId,
-      excluded,
-      vatMode,
-      note,
+      sourceType, sourceId, taxYear, eurLineId, excluded, vatMode, note,
     });
   });
 
