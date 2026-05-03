@@ -8,6 +8,11 @@ import { useInvoicesQuery } from '../hooks/useInvoices';
 import { useOffersQuery } from '../hooks/useOffers';
 import { getPreviewElements } from '../utils/documentPreview';
 
+/** Signal Electron that the PDF content is ready to capture. */
+const signalReady = () => {
+  (globalThis as any).__PDF_READY__ = true;
+};
+
 export const PrintDocument: React.FC<{ kind: 'invoice' | 'offer'; id: string }> = ({ kind, id }) => {
   const { data: settingsFromDb } = useSettingsQuery();
   const settings = settingsFromDb ?? MOCK_SETTINGS;
@@ -16,6 +21,13 @@ export const PrintDocument: React.FC<{ kind: 'invoice' | 'offer'; id: string }> 
 
   const invoicesQuery = useInvoicesQuery();
   const offersQuery = useOffersQuery();
+
+  // Derive loading / success state
+  const isLoading =
+    kind === 'offer' ? offersQuery.isLoading : invoicesQuery.isLoading;
+  const isSuccess =
+    kind === 'offer' ? offersQuery.isSuccess : invoicesQuery.isSuccess;
+
   const doc =
     kind === 'offer'
       ? (offersQuery.data ?? []).find((o) => o.id === id)
@@ -26,20 +38,32 @@ export const PrintDocument: React.FC<{ kind: 'invoice' | 'offer'; id: string }> 
     return getPreviewElements(doc, template as any, settings as any);
   }, [doc, template, settings]);
 
+  // Reset flag on mount
   React.useEffect(() => {
     (globalThis as any).__PDF_READY__ = false;
+
+    // Safety-net: signal ready after 12 s regardless, so Electron never times out
+    const safetyTimer = setTimeout(signalReady, 12_000);
+    return () => clearTimeout(safetyTimer);
   }, []);
 
+  // Signal ready as soon as we have a result (found OR not found after load)
   React.useEffect(() => {
-    if (!doc) return;
-    if (previewElements.length === 0) return;
-    // Ensure layout has painted before printToPDF.
-    requestAnimationFrame(() => {
+    // Still loading – wait
+    if (isLoading) return;
+
+    if (doc && previewElements.length > 0) {
+      // Document found and elements computed – wait two animation frames so
+      // the browser has fully painted the canvas before printToPDF.
       requestAnimationFrame(() => {
-        (globalThis as any).__PDF_READY__ = true;
+        requestAnimationFrame(signalReady);
       });
-    });
-  }, [doc, previewElements.length]);
+    } else if (isSuccess) {
+      // Queries finished but doc not found – signal anyway so we get the
+      // "not found" page instead of an Electron timeout error.
+      requestAnimationFrame(signalReady);
+    }
+  }, [doc, previewElements.length, isLoading, isSuccess]);
 
   return (
     <div>
@@ -82,4 +106,3 @@ export const PrintDocument: React.FC<{ kind: 'invoice' | 'offer'; id: string }> 
     </div>
   );
 };
-
