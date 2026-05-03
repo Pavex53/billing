@@ -382,6 +382,8 @@ export const registerIpcHandlers = (
   register(ipcMain, 'pdf:export', async ({ kind, id }) => {
     const db = requireDb();
     const userDataPath = getUserDataPath();
+    const settings = getSettings(db);
+    const pdfOutputPath = settings?.output?.pdfOutputPath?.trim() || undefined;
 
     if (kind === 'offer') {
       const offer = getOffer(db, id);
@@ -391,6 +393,7 @@ export const registerIpcHandlers = (
         id,
         suggestedName: `${offer.number || 'offer'}-${offer.client || id}`,
         userDataPath,
+        pdfOutputPath,
       });
       return { path: res.path };
     }
@@ -402,9 +405,9 @@ export const registerIpcHandlers = (
       id,
       suggestedName: `${invoice.number || 'invoice'}-${invoice.client || id}`,
       userDataPath,
+      pdfOutputPath,
     });
-    const settings = requireSettings(db);
-    if (settings.eInvoice?.enabled) {
+    if (settings?.eInvoice?.enabled) {
       const normalized = normalizeInvoiceForEinvoice(invoice, settings);
       const xml = buildZugferdXml(normalized);
       const finalBytes = await embedZugferdInPdf({
