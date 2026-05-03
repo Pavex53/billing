@@ -5,7 +5,7 @@ import {
   Share2, Check,
   ChevronDown, ArrowUpRight,
   AlertTriangle, Gavel, CheckCircle, X,
-  Download, Printer, Send, Paperclip, MoreHorizontal, Calendar, User, RefreshCw, Link, ExternalLink, Trash2, LayoutTemplate, Edit3, Euro, ArrowRight
+  Download, Printer, Paperclip, MoreHorizontal, Calendar, User, RefreshCw, Link, ExternalLink, Trash2, LayoutTemplate, Edit3, Euro, ArrowRight
 } from 'lucide-react';
 import { Badge, Button } from '@billme/ui';
 import { Invoice, InvoiceStatus, AppSettings } from '../types';
@@ -174,28 +174,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       const allSelected = allIds.length > 0 && allIds.every((id) => prev.has(id));
       return allSelected ? new Set() : new Set(allIds);
     });
-  };
-
-  const handleSharePaymentLink = () => {
-    if (!selectedDocument?.number) {
-      setToastMessage('Kein Dokument für Zahllink ausgewählt.');
-      setShowShareToast(true);
-      setTimeout(() => setShowShareToast(false), 3000);
-      return;
-    }
-
-    const paymentBaseUrl = settings.portal.baseUrl?.trim() || 'https://pay.billme.de';
-    const url = `${paymentBaseUrl.replace(/\/+$/, '')}/${encodeURIComponent(selectedDocument.number)}`;
-    void (async () => {
-      try {
-        await navigator.clipboard.writeText(url);
-        setToastMessage('Zahllink kopiert!');
-      } catch (error) {
-        setToastMessage(`Kopieren fehlgeschlagen: ${String(error)}`);
-      }
-      setShowShareToast(true);
-      setTimeout(() => setShowShareToast(false), 3500);
-    })();
   };
 
   const handleDownloadPdf = () => {
@@ -899,13 +877,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                         }}
                       >
                           <Printer size={18} />
-                      </button>
-                      <button 
-                        onClick={handleSharePaymentLink}
-                        className="h-10 w-10 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-full flex items-center justify-center transition-colors"
-                        title="Zahllink kopieren"
-                      >
-                          <Share2 size={18} />
                       </button>
                   </div>
               </div>
