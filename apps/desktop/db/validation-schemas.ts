@@ -129,6 +129,9 @@ export const TemplateElementSchema = z.discriminatedUnion('type', [
   QRCodeElementSchema,
 ]);
 
+// Plural alias used by templatesRepo
+export const TemplateElementsSchema = z.array(TemplateElementSchema);
+
 export const AddressSchema = z.object({
   id: z.string().optional(),
   kind: z.enum(['billing', 'shipping', 'other']).optional(),
